@@ -3,228 +3,210 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Super Resolution | DnCNN + Real-ESRGAN</title>
+  <title>AI Image Upscaler</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbit&family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <style>
     :root {
       --primary-color: #00f260;
       --secondary-color: #0575e6;
-      --bg-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
       --glass-bg: rgba(255, 255, 255, 0.05);
       --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-      --text-color: #ffffff;
+      --text: #fff;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Noto Sans KR', sans-serif;
-      background: var(--bg-gradient);
-      color: var(--text-color);
+      font-family: "Noto Sans KR", sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       padding: 20px;
-      overflow-x: hidden;
     }
 
     .container {
+      width: 100%;
+      max-width: 900px;
       background: var(--glass-bg);
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
       border: var(--glass-border);
       border-radius: 20px;
       padding: 40px;
-      width: 100%;
-      max-width: 1000px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
       text-align: center;
-      transition: transform 0.3s ease;
+      backdrop-filter: blur(12px);
     }
 
     h1 {
-      font-family: 'Orbit', sans-serif;
-      font-size: 2.5rem;
-      margin-bottom: 10px;
+      font-family: "Orbit", sans-serif;
+      font-size: 2.4rem;
       background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      letter-spacing: 2px;
+      margin-bottom: 10px;
     }
 
     p.subtitle {
-      color: #aaa;
+      color: #bbb;
       margin-bottom: 30px;
       font-size: 0.95rem;
     }
 
     .upload-area {
-      border: 2px dashed rgba(255,255,255,0.3);
-      border-radius: 15px;
-      padding: 30px;
+      border: 2px dashed rgba(255,255,255,0.35);
+      border-radius: 16px;
+      padding: 40px 20px;
+      background: rgba(255,255,255,0.06);
       cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      background: rgba(0,0,0,0.2);
+
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      text-align: center;
+
+      transition: 0.25s ease;
+    }
+
+    .upload-area:hover {
+      border-color: var(--primary-color);
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-2px);
     }
 
     .upload-area i {
-      font-size: 3.5rem;
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 12px;
+      font-size: 3.6rem;
+      margin-bottom: 10px;
+      color: rgba(255,255,255,0.75);
     }
 
     .upload-area p {
-      margin-top: 8px;
-      margin-bottom: 5px;
-      font-size: 1rem;
-      color: #ddd;
+      font-size: 1.15rem;
+      margin: 5px 0;
     }
 
-    .upload-area span {
-      margin-top: 5px;
-      display: block;
+    .upload-hint {
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-top: 4px;
     }
-    #file-input { display: none; }
+
+    #file-input {
+      display: none;
+    }
 
     #preview-container {
       margin-top: 20px;
       display: none;
-      animation: fadeIn 0.5s ease;
     }
-    
+
     #preview-img {
-      max-height: 200px;
+      max-height: 220px;
       border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      border: 2px solid rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.25);
+      box-shadow: 0 3px 15px rgba(0,0,0,0.4);
     }
 
     .btn-submit {
       margin-top: 30px;
       padding: 15px 40px;
       font-size: 1.1rem;
-      font-weight: bold;
+      font-weight: 700;
+      border: none;
+      border-radius: 35px;
+      cursor: pointer;
       color: #fff;
       background: linear-gradient(45deg, var(--secondary-color), var(--primary-color));
-      border: none;
-      border-radius: 50px;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0, 242, 96, 0.4);
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: 0.25s ease;
     }
 
     .btn-submit:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 242, 96, 0.6);
+      box-shadow: 0 6px 20px rgba(0, 242, 96, 0.4);
     }
 
     .btn-submit:disabled {
-      background: #555;
+      background: #666;
       cursor: not-allowed;
-      transform: none;
-    }
-
-    #result {
-      margin-top: 50px;
-      width: 100%;
     }
 
     .compare-grid {
+      margin-top: 40px;
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 20px;
-      width: 100%;
     }
 
     .result-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 15px;
-      padding: 15px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      transition: transform 0.3s;
-      animation: slideUp 0.6s ease forwards;
-      opacity: 0;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 16px;
+      border-radius: 12px;
+      transition: 0.25s ease;
     }
-    
-    .result-card:nth-child(1) { animation-delay: 0.1s; }
-    .result-card:nth-child(2) { animation-delay: 0.2s; }
-    .result-card:nth-child(3) { animation-delay: 0.3s; }
 
     .result-card:hover {
-      transform: translateY(-5px);
-      background: rgba(255, 255, 255, 0.07);
+      background: rgba(255,255,255,0.1);
+      transform: translateY(-4px);
     }
 
     .result-card h3 {
       font-size: 1rem;
       margin-bottom: 10px;
       color: var(--primary-color);
-      text-transform: uppercase;
-      letter-spacing: 1px;
     }
 
     .result-card img {
       width: 100%;
-      height: auto;
       border-radius: 8px;
-      display: block;
+      cursor: zoom-in;
     }
 
     .loader {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255,255,255,.3);
+      width: 18px;
+      height: 18px;
+      border: 3px solid rgba(255,255,255,0.3);
       border-radius: 50%;
-      border-top-color: #fff;
-      animation: spin 1s ease-in-out infinite;
-      margin-right: 10px;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+      display: inline-block;
       vertical-align: middle;
+      margin-right: 10px;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
 
     @media (max-width: 600px) {
-      h1 { font-size: 1.8rem; }
-      .container { padding: 20px; }
+      .container { padding: 25px; }
+      h1 { font-size: 1.9rem; }
     }
   </style>
 </head>
-<body>
 
+<body>
   <div class="container">
-    <header>
-      <h1>AI IMAGE UPSCALER</h1>
-      <p class="subtitle">DnCNN Noise Reduction + Real-ESRGAN Super Resolution</p>
-    </header>
+    <h1>AI IMAGE UPSCALER</h1>
+    <p class="subtitle">DnCNN Noise Removal + Real-ESRGAN Super Resolution</p>
 
     <form id="upload-form" enctype="multipart/form-data">
       <label for="file-input" class="upload-area" id="drop-area">
         <i class="fa-solid fa-cloud-arrow-up"></i>
-        <p><strong>Click to upload</strong> or drag and drop</p>
-        <span style="font-size: 0.8rem; color: #888;">Supports: JPG, PNG, WEBP</span>
+        <p><strong>이미지를 업로드하세요</strong></p>
+        <span class="upload-hint">JPG · PNG · WEBP 지원</span>
       </label>
+
       <input type="file" id="file-input" name="file" accept="image/*" required />
-      
+
       <div id="preview-container">
         <img id="preview-img" src="" alt="미리보기" />
       </div>
 
       <button type="submit" class="btn-submit" id="submit-btn">
-        <span>RUN UPSCALER</span>
+        RUN UPSCALER
       </button>
     </form>
 
@@ -232,100 +214,81 @@
   </div>
 
   <script>
-    const form = document.getElementById('upload-form');
-    const result = document.getElementById('result');
-    const fileInput = document.getElementById('file-input');
-    const previewContainer = document.getElementById('preview-container');
-    const previewImg = document.getElementById('preview-img');
-    const submitBtn = document.getElementById('submit-btn');
-    const dropArea = document.getElementById('drop-area');
+    const form = document.getElementById("upload-form");
+    const fileInput = document.getElementById("file-input");
+    const previewContainer = document.getElementById("preview-container");
+    const previewImg = document.getElementById("preview-img");
+    const submitBtn = document.getElementById("submit-btn");
+    const dropArea = document.getElementById("drop-area");
+    const result = document.getElementById("result");
 
-    fileInput.addEventListener('change', function() {
-      handleFile(this.files[0]);
-    });
-
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-      dropArea.addEventListener(eventName, preventDefaults, false);
-    });
-
-    function preventDefaults(e) {
-      e.preventDefault();
-      e.stopPropagation();
+    function viewImage(src) {
+      const w = window.open("");
+      w.document.write(`<img src="${src}" style="max-width:100%; margin:0;">`);
     }
 
-    ['dragenter', 'dragover'].forEach(eventName => {
-      dropArea.addEventListener(eventName, highlight, false);
+    fileInput.addEventListener("change", () => {
+      handleFile(fileInput.files[0]);
     });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-      dropArea.addEventListener(eventName, unhighlight, false);
-    });
-
-    function highlight(e) { dropArea.classList.add('dragover'); }
-    function unhighlight(e) { dropArea.classList.remove('dragover'); }
-
-    dropArea.addEventListener('drop', handleDrop, false);
-
-    function handleDrop(e) {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      fileInput.files = files;
-      handleFile(files[0]);
-    }
 
     function handleFile(file) {
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          previewImg.src = e.target.result;
-          previewContainer.style.display = 'block';
-        }
-        reader.readAsDataURL(file);
-      } else {
-        previewContainer.style.display = 'none';
-        previewImg.src = "";
-      }
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        previewImg.src = e.target.result;
+        previewContainer.style.display = "block";
+      };
+      reader.readAsDataURL(file);
     }
 
-    form.addEventListener('submit', async (e) => {
+    ["dragenter","dragover","dragleave","drop"].forEach(event =>
+      dropArea.addEventListener(event, e => { e.preventDefault(); e.stopPropagation(); })
+    );
+
+    dropArea.addEventListener("drop", e => {
+      const file = e.dataTransfer.files[0];
+      fileInput.files = e.dataTransfer.files;
+      handleFile(file);
+    });
+
+    form.addEventListener("submit", async e => {
       e.preventDefault();
-
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="loader"></span> Processing...';
-      result.innerHTML = "";
+      dropArea.classList.add('disabled');
 
+      result.innerHTML = "";
       const formData = new FormData(form);
 
+      fileInput.disabled = true;
+
       try {
-        const res = await fetch('/upscale', { method: 'POST', body: formData });
+        const res = await fetch("/upscale", { method: "POST", body: formData });
         const data = await res.json();
 
         if (data.error) throw new Error(data.error);
 
         result.innerHTML = `
-          <div class="compare-grid">
-            <div class="result-card">
-              <h3>Original</h3>
-              <img src="${data.original}" onclick="window.open(this.src)" style="cursor:zoom-in"/>
-            </div>
-            <div class="result-card">
-              <h3>Denoised (DnCNN)</h3>
-              <img src="${data.denoised}" onclick="window.open(this.src)" style="cursor:zoom-in"/>
-            </div>
-            <div class="result-card">
-              <h3>Upscaled (ESRGAN)</h3>
-              <img src="${data.upscaled}" onclick="window.open(this.src)" style="cursor:zoom-in"/>
-            </div>
+        <div class="compare-grid">
+          <div class="result-card">
+            <h3>Original</h3>
+            <img src="${data.original}" onclick="viewImage(this.src)">
           </div>
-          <p style="margin-top: 20px; color: #888; font-size: 0.8rem;">Click images to view full size</p>
-        `;
+          <div class="result-card">
+            <h3>Denoised</h3>
+            <img src="${data.denoised}" onclick="viewImage(this.src)">
+          </div>
+          <div class="result-card">
+            <h3>Upscaled</h3>
+            <img src="${data.upscaled}" onclick="viewImage(this.src)">
+          </div>
+        </div>`;
       } catch (err) {
-        console.error(err);
-        result.innerHTML = `<p style='color:#ff6b6b; margin-top:20px;'><i class="fa-solid fa-triangle-exclamation"></i> Error: ${err.message || 'Processing Failed'}</p>`;
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span>RUN UPSCALER</span>';
+        result.innerHTML = `<p style="margin-top:20px; color:#ff6b6b;">오류: ${err.message}</p>`;
       }
+
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = "RUN UPSCALER";
     });
   </script>
 </body>
