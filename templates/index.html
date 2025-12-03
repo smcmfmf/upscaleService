@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Image Upscaler</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Orbit&family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -31,13 +32,14 @@
 
     .container {
       width: 100%;
-      max-width: 900px;
+      max-width: 800px;
       background: var(--glass-bg);
       border: var(--glass-border);
       border-radius: 20px;
       padding: 40px;
       text-align: center;
       backdrop-filter: blur(12px);
+      transition: all 0.3s ease;
     }
 
     h1 {
@@ -61,12 +63,10 @@
       padding: 40px 20px;
       background: rgba(255,255,255,0.06);
       cursor: pointer;
-
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-
       transition: 0.25s ease;
     }
 
@@ -93,9 +93,7 @@
       margin-top: 4px;
     }
 
-    #file-input {
-      display: none;
-    }
+    #file-input { display: none; }
 
     #preview-container {
       margin-top: 20px;
@@ -120,9 +118,11 @@
       color: #fff;
       background: linear-gradient(45deg, var(--secondary-color), var(--primary-color));
       transition: 0.25s ease;
+      width: 100%;
+      max-width: 300px;
     }
 
-    .btn-submit:hover {
+    .btn-submit:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(0, 242, 96, 0.4);
     }
@@ -130,38 +130,75 @@
     .btn-submit:disabled {
       background: #666;
       cursor: not-allowed;
+      opacity: 0.7;
     }
 
-    .compare-grid {
-      margin-top: 40px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
-
-    .result-card {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      padding: 16px;
-      border-radius: 12px;
-      transition: 0.25s ease;
-    }
-
-    .result-card:hover {
-      background: rgba(255,255,255,0.1);
-      transform: translateY(-4px);
-    }
-
-    .result-card h3 {
-      font-size: 1rem;
-      margin-bottom: 10px;
-      color: var(--primary-color);
-    }
-
-    .result-card img {
+    #result {
+      margin-top: 20px;
       width: 100%;
+      display: none;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .result-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 15px;
+    }
+
+    .result-table th {
+      width: 30%;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--primary-color);
+      font-family: "Orbit", sans-serif;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-top-left-radius: 15px;
+      border-bottom-left-radius: 15px;
+      vertical-align: middle;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-right: none;
+    }
+
+    .result-table td {
+      width: 70%;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.02);
+      border-top-right-radius: 15px;
+      border-bottom-right-radius: 15px;
+      vertical-align: middle;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-left: none;
+    }
+
+    .result-table img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
       border-radius: 8px;
       cursor: zoom-in;
+      display: block;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    .btn-reset {
+      margin-top: 30px;
+      padding: 12px 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: transparent;
+      color: #fff;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-reset:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: #fff;
     }
 
     .loader {
@@ -176,13 +213,15 @@
       margin-right: 10px;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 600px) {
       .container { padding: 25px; }
       h1 { font-size: 1.9rem; }
+      .result-table th { width: 100%; display: block; border-radius: 15px 15px 0 0; border-bottom: none; border-right: 1px solid rgba(255,255,255,0.05); }
+      .result-table td { width: 100%; display: block; border-radius: 0 0 15px 15px; border-top: none; border-left: 1px solid rgba(255,255,255,0.05); }
+      .result-table tr { display: block; margin-bottom: 20px; }
     }
   </style>
 </head>
@@ -220,11 +259,36 @@
     const previewImg = document.getElementById("preview-img");
     const submitBtn = document.getElementById("submit-btn");
     const dropArea = document.getElementById("drop-area");
-    const result = document.getElementById("result");
+    const resultDiv = document.getElementById("result");
 
     function viewImage(src) {
       const w = window.open("");
-      w.document.write(`<img src="${src}" style="max-width:100%; margin:0;">`);
+      if (w) {
+        w.document.write(`
+          <!DOCTYPE html>
+          <html style="background:#1a1a1a; height:100%; margin:0;">
+          <head><title>Image Preview</title></head>
+          <body style="margin:0; display:flex; justify-content:center; align-items:center; height:100%;">
+            <img src="${src}" style="max-width:100%; max-height:100%; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+          </body>
+          </html>
+        `);
+        w.document.close();
+      } else {
+        alert("팝업 차단을 해제해주세요.");
+      }
+    }
+
+    function resetUploader() {
+      form.style.display = "block";
+      resultDiv.style.display = "none";
+      resultDiv.innerHTML = "";
+
+      form.reset();
+      previewImg.src = "";
+      previewContainer.style.display = "none";
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = "RUN UPSCALER";
     }
 
     fileInput.addEventListener("change", () => {
@@ -233,7 +297,6 @@
 
     function handleFile(file) {
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = e => {
         previewImg.src = e.target.result;
@@ -254,13 +317,11 @@
 
     form.addEventListener("submit", async e => {
       e.preventDefault();
+      
       submitBtn.disabled = true;
-      dropArea.classList.add('disabled');
-
-      result.innerHTML = "";
+      submitBtn.innerHTML = `<span class="loader"></span> Processing...`;
+      
       const formData = new FormData(form);
-
-      fileInput.disabled = true;
 
       try {
         const res = await fetch("/upscale", { method: "POST", body: formData });
@@ -268,27 +329,39 @@
 
         if (data.error) throw new Error(data.error);
 
-        result.innerHTML = `
-        <div class="compare-grid">
-          <div class="result-card">
-            <h3>Original</h3>
-            <img src="${data.original}" onclick="viewImage(this.src)">
-          </div>
-          <div class="result-card">
-            <h3>Denoised</h3>
-            <img src="${data.denoised}" onclick="viewImage(this.src)">
-          </div>
-          <div class="result-card">
-            <h3>Upscaled</h3>
-            <img src="${data.upscaled}" onclick="viewImage(this.src)">
-          </div>
-        </div>`;
-      } catch (err) {
-        result.innerHTML = `<p style="margin-top:20px; color:#ff6b6b;">오류: ${err.message}</p>`;
-      }
+        form.style.display = "none";
 
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = "RUN UPSCALER";
+        resultDiv.style.display = "block";
+        resultDiv.innerHTML = `
+          <table class="result-table">
+            <tbody>
+              <tr>
+                <th>Original</th>
+                <td><img src="${data.original}" onclick="viewImage(this.src)" title="원본 이미지"></td>
+              </tr>
+              <tr>
+                <th>Denoised</th>
+                <td><img src="${data.denoised}" onclick="viewImage(this.src)" title="노이즈 제거"></td>
+              </tr>
+              <tr>
+                <th>Upscaled</th>
+                <td><img src="${data.upscaled}" onclick="viewImage(this.src)" title="업스케일링 결과"></td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <button class="btn-reset" onclick="resetUploader()">
+            <i class="fa-solid fa-rotate-right"></i> 다른 사진 업스케일링 하기
+          </button>
+        `;
+
+      } catch (err) {
+        console.error(err);
+        form.style.display = "block";
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = "RUN UPSCALER";
+        alert("오류 발생: " + err.message);
+      }
     });
   </script>
 </body>
