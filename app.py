@@ -31,12 +31,10 @@ class DnCNN(nn.Module):
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-# 노이즈 필터 (DnCNN)
 dncnn = DnCNN().to(device)
 dncnn.load_state_dict(torch.load('weights/dncnn_sigma2_color.pth', map_location=device), strict=False)
 dncnn.eval()
 
-# 업스케일러 (Real-ESRGAN)
 rrdb_model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
 upsampler = RealESRGANer(
     scale=4,
