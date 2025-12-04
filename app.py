@@ -11,6 +11,13 @@ import shutil
 from realesrgan import RealESRGANer
 from basicsr.archs.rrdbnet_arch import RRDBNet
 
+try:
+    from gfpgan import GFPGANer
+    gfpgan_available = True
+except ImportError:
+    gfpgan_available = False
+    print("Warning: GFPGAN not installed. Face enhancement will be unavailable.")
+
 app = Flask(__name__)
 
 class DnCNN(nn.Module):
@@ -82,6 +89,29 @@ denoise_models['none'] = {
     'description': '노이즈 제거 생략'
 }
 
+face_enhancer = None
+if gfpgan_available:
+    try:
+        print("Loading GFPGAN...")
+        gfpgan_model_path = 'weights/GFPGANv1.4.pth'
+
+        if not os.path.exists(gfpgan_model_path):
+            print(f"GFPGAN model not found at {gfpgan_model_path}. Downloading...")
+
+            os.makedirs(os.path.dirname(gfpgan_model_path), exist_ok=True)
+
+            url = 'https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth'
+
+            torch.hub.download_url_to_file(url, gfpgan_model_path)
+            print("Download complete.")
+
+        face_enhancer = GFPGANer(model_path=gfpgan_model_path, upscale=1, arch='clean', channel_multiplier=2, bg_upsampler=None, device=device)
+        print("GFPGAN loaded")
+
+    except Exception as e:
+        print(f"GFPGAN failed: {e}")
+        face_enhancer = None
+
 upscale_models = {}
 
 try:
@@ -127,6 +157,7 @@ except Exception as e:
 print(f"\n=== Loaded Models Summary ===")
 print(f"Denoise models: {len([k for k in denoise_models.keys() if k != 'none'])}")
 print(f"Upscale models: {len(upscale_models)}")
+print(f"Face Enhancer: {'Available' if face_enhancer is not None else 'Unavailable'}")
 print("=" * 30 + "\n")
 
 def pil_to_base64(img_pil):
@@ -170,6 +201,7 @@ def upscale():
         denoise_model_id = request.form.get('denoise_model', 'dncnn_sigma2')
         upscale_model_id = request.form.get('upscale_model', 'realesrgan_x4')
         downscale = request.form.get('downscale', 'true').lower() == 'true'
+        face_enhance = request.form.get('face_enhance') == 'true'
 
         try:
             target_scale = float(request.form.get('target_scale', 4))
@@ -181,6 +213,7 @@ def upscale():
         print(f"Upscale model: {upscale_model_id}")
         print(f"Target Scale: {target_scale}x")
         print(f"Downscale: {downscale}")
+        print(f"Face Enhance: {face_enhance}")
 
         if denoise_model_id not in denoise_models:
             return jsonify({'error': f'Invalid denoise model: {denoise_model_id}'}), 400
@@ -200,7 +233,7 @@ def upscale():
             print(f"Downscaled to: {img.size}")
 
         img_np = np.array(img).astype(np.float32) / 255.0
-        
+
         if denoise_info['model'] is not None:
             print("Applying denoising...")
             img_tensor = torch.from_numpy(img_np.transpose(2,0,1)).unsqueeze(0).to(device)
@@ -223,7 +256,7 @@ def upscale():
         h_step = h_curr // rows
         w_step = w_curr // cols
         pad_size = 32
-
+        
         scale_factor = target_scale
 
         upscaled_parts_paths = []
@@ -242,6 +275,7 @@ def upscale():
                 x_pad_end = min(w_curr, x_end + pad_size)
 
                 crop_padded = denoised_bgr[y_pad_start:y_pad_end, x_pad_start:x_pad_end]
+
                 crop_upscaled_padded, _ = upscale_info['model'].enhance(crop_padded, outscale=scale_factor)
 
                 crop_y_offset = (y_start - y_pad_start) * scale_factor
@@ -286,6 +320,16 @@ def upscale():
 
         upscaled = final_upscaled
 
+        face_enhanced_status = False
+        if face_enhance and face_enhancer is not None:
+            print("Applying face enhancement (GFPGAN)...")
+            _, _, upscaled_face = face_enhancer.enhance(upscaled, has_aligned=False, only_center_face=False, paste_back=True)
+            upscaled = upscaled_face
+            face_enhanced_status = True
+            print("Face enhancement complete")
+        elif face_enhance and face_enhancer is None:
+             print("Warning: Face enhancement requested but GFPGAN model is not loaded.")
+
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
 
@@ -304,7 +348,8 @@ def upscale():
                 'denoise_model': denoise_info['name'],
                 'upscale_model': upscale_info['name'],
                 'scale': scale_factor,
-                'downscaled': downscale
+                'downscaled': downscale,
+                'face_enhanced': face_enhanced_status
             }
         })
 

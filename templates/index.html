@@ -27,7 +27,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 20px;
+      padding: 10px;
     }
 
     .container {
@@ -36,7 +36,7 @@
       background: var(--glass-bg);
       border: var(--glass-border);
       border-radius: 20px;
-      padding: 40px;
+      padding: 20px;
       text-align: center;
       backdrop-filter: blur(12px);
       transition: all 0.3s ease;
@@ -55,7 +55,7 @@
 
     p.subtitle {
       color: #bbb;
-      margin-bottom: 30px;
+      margin-bottom: 10px;
       font-size: 0.95rem;
     }
 
@@ -63,7 +63,7 @@
       margin-bottom: 25px;
       text-align: left;
       background: rgba(255,255,255,0.03);
-      padding: 20px;
+      padding: 10px;
       border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.08);
     }
@@ -147,8 +147,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 12px 5px;
-      height: 100%;
+      padding: 8px 5px;
     }
 
     .checkbox-wrapper input[type="checkbox"] {
@@ -169,7 +168,7 @@
     .upload-area {
       border: 2px dashed rgba(255,255,255,0.35);
       border-radius: 16px;
-      padding: 40px 20px;
+      padding: 10px 5px;
       background: rgba(255,255,255,0.06);
       cursor: pointer;
       display: flex;
@@ -206,7 +205,7 @@
     #file-input { display: none; }
 
     #preview-container {
-      margin-top: 20px;
+      margin-top: 10px;
       display: none;
     }
 
@@ -218,7 +217,7 @@
     }
 
     .btn-submit {
-      margin-top: 30px;
+      margin-top: 10px;
       padding: 15px 40px;
       font-size: 1.1rem;
       font-weight: 700;
@@ -244,7 +243,7 @@
     }
 
     #result {
-      margin-top: 20px;
+      margin-top: 10px;
       width: 100%;
       display: none;
       animation: fadeIn 0.5s ease;
@@ -254,7 +253,7 @@
       background: rgba(0, 242, 96, 0.1);
       border: 1px solid rgba(0, 242, 96, 0.3);
       border-radius: 10px;
-      padding: 15px;
+      padding: 10px;
       margin-bottom: 20px;
       text-align: left;
     }
@@ -295,7 +294,7 @@
 
     .result-table td {
       width: 70%;
-      padding: 15px;
+      padding: 10px;
       background: rgba(255, 255, 255, 0.02);
       border-top-right-radius: 15px;
       border-bottom-right-radius: 15px;
@@ -315,7 +314,7 @@
     }
 
     .btn-reset {
-      margin-top: 30px;
+      margin-top: 10px;
       padding: 12px 30px;
       font-size: 1rem;
       font-weight: 600;
@@ -373,6 +372,31 @@
       color: #aaa;
     }
 
+    .btn-download {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 15px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--primary-color);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-decoration: none;
+      font-family: "Noto Sans KR", sans-serif;
+    }
+
+    .btn-download:hover {
+      background: var(--primary-color);
+      color: #000;
+    }
+
+    .result-table th {
+        vertical-align: top;
+    }
+
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -380,18 +404,12 @@
       .container { padding: 25px; }
       h1 { font-size: 1.9rem; }
       
-      .result-table th, .result-table td { 
-        width: 100%; display: block; 
-        border-radius: 0; 
-      }
+      .result-table th, .result-table td { width: 100%; display: block; border-radius: 0; }
       .result-table th { border-radius: 15px 15px 0 0; border-right: 1px solid rgba(255,255,255,0.05); }
       .result-table td { border-radius: 0 0 15px 15px; border-left: 1px solid rgba(255,255,255,0.05); }
       .result-table tr { display: block; margin-bottom: 20px; }
 
-      .settings-table th, .settings-table td {
-        display: block;
-        width: 100%;
-      }
+      .settings-table th, .settings-table td { display: block; width: 100%; }
       .settings-table th { margin-top: 15px; }
       .settings-table tr:first-child th:first-child { margin-top: 0; }
     }
@@ -447,8 +465,16 @@
             </td>
             <td>
               <div class="checkbox-wrapper">
+                <input type="checkbox" id="face-enhance-check" name="face_enhance" value="true">
+                <label for="face-enhance-check">
+                  <i class="fa-solid fa-face-smile-wink"></i> 얼굴 보정 (인물)
+                </label>
+              </div>
+              <div class="checkbox-wrapper">
                 <input type="checkbox" id="downscale-check" name="downscale" value="true" checked>
-                <label for="downscale-check">처리 전 2배 축소</label>
+                <label for="downscale-check">
+                  <i class="fa-solid fa-compress"></i> 처리 전 2배 축소
+                </label>
               </div>
             </td>
           </tr>
@@ -597,6 +623,15 @@
       handleFile(file);
     });
 
+    function downloadImage(dataUrl, filename) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
     form.addEventListener("submit", async e => {
       e.preventDefault();
       
@@ -614,6 +649,9 @@
         form.style.display = "none";
 
         const settings = data.settings;
+        const timestamp = new Date().getTime();
+        const filename = `upscaled_${timestamp}.png`;
+
         resultDiv.style.display = "block";
         resultDiv.innerHTML = `
           <div class="result-info">
@@ -621,7 +659,8 @@
             <p><strong>노이즈 제거:</strong> ${settings.denoise_model}</p>
             <p><strong>업스케일링:</strong> ${settings.upscale_model}</p>
             <p><strong>배율:</strong> ${settings.scale}x</p>
-            <p><strong>사전 축소:</strong> ${settings.downscaled ? '적용됨' : '적용 안 됨'}</p>
+            <p><strong>얼굴 보정:</strong> ${settings.face_enhanced ? '적용됨' : '미적용'}</p>
+            <p><strong>사전 축소:</strong> ${settings.downscaled ? '적용됨' : '미적용'}</p>
           </div>
 
           <table class="result-table">
@@ -635,7 +674,12 @@
                 <td><img src="${data.denoised}" onclick="viewImage(this.src)" title="노이즈 제거"></td>
               </tr>
               <tr>
-                <th>Upscaled</th>
+                <th>
+                  Upscaled<br>
+                  <button class="btn-download" onclick="downloadImage('${data.upscaled}', '${filename}')">
+                    <i class="fa-solid fa-download"></i> 다운로드
+                  </button>
+                </th>
                 <td><img src="${data.upscaled}" onclick="viewImage(this.src)" title="업스케일링 결과"></td>
               </tr>
             </tbody>
