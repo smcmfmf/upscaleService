@@ -171,9 +171,15 @@ def upscale():
         upscale_model_id = request.form.get('upscale_model', 'realesrgan_x4')
         downscale = request.form.get('downscale', 'true').lower() == 'true'
 
+        try:
+            target_scale = float(request.form.get('target_scale', 4))
+        except ValueError:
+            target_scale = 4.0
+
         print(f"\n=== Processing Request ===")
         print(f"Denoise model: {denoise_model_id}")
         print(f"Upscale model: {upscale_model_id}")
+        print(f"Target Scale: {target_scale}x")
         print(f"Downscale: {downscale}")
 
         if denoise_model_id not in denoise_models:
@@ -217,7 +223,8 @@ def upscale():
         h_step = h_curr // rows
         w_step = w_curr // cols
         pad_size = 32
-        scale_factor = upscale_info['scale']
+
+        scale_factor = target_scale
 
         upscaled_parts_paths = []
 
@@ -235,7 +242,6 @@ def upscale():
                 x_pad_end = min(w_curr, x_end + pad_size)
 
                 crop_padded = denoised_bgr[y_pad_start:y_pad_end, x_pad_start:x_pad_end]
-
                 crop_upscaled_padded, _ = upscale_info['model'].enhance(crop_padded, outscale=scale_factor)
 
                 crop_y_offset = (y_start - y_pad_start) * scale_factor
@@ -245,8 +251,8 @@ def upscale():
                 core_w_scaled = (x_end - x_start) * scale_factor
 
                 crop_upscaled_core = crop_upscaled_padded[
-                    crop_y_offset : crop_y_offset + core_h_scaled,
-                    crop_x_offset : crop_x_offset + core_w_scaled
+                    int(crop_y_offset) : int(crop_y_offset + core_h_scaled),
+                    int(crop_x_offset) : int(crop_x_offset + core_w_scaled)
                 ]
 
                 part_filename = os.path.join(temp_dir, f"part_{r}_{col}.png")
@@ -255,8 +261,8 @@ def upscale():
             
             upscaled_parts_paths.append(row_paths)
 
-        full_h = h_curr * scale_factor
-        full_w = w_curr * scale_factor
+        full_h = int(h_curr * scale_factor)
+        full_w = int(w_curr * scale_factor)
         final_upscaled = np.zeros((full_h, full_w, 3), dtype=np.uint8)
 
         current_y = 0

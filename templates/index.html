@@ -40,6 +40,8 @@
       text-align: center;
       backdrop-filter: blur(12px);
       transition: all 0.3s ease;
+      position: relative;
+      z-index: 1;
     }
 
     h1 {
@@ -75,23 +77,36 @@
       gap: 8px;
     }
 
-    .settings-group {
-      margin-bottom: 20px;
+    .settings-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 15px 10px;
+      margin: -10px -15px;
+      width: calc(100% + 30px);
     }
 
-    .settings-group:last-child {
-      margin-bottom: 0;
-    }
-
-    .settings-group label {
-      display: block;
-      margin-bottom: 8px;
+    .settings-table th {
+      text-align: left;
       color: #ddd;
       font-weight: 500;
       font-size: 0.95rem;
+      padding: 5px 0 0 5px;
+      width: 50%;
     }
 
-    .settings-group select {
+    .settings-table th i {
+      color: var(--primary-color);
+      margin-right: 6px;
+      width: 16px;
+      text-align: center;
+    }
+
+    .settings-table td {
+      vertical-align: top;
+      padding-bottom: 10px;
+    }
+
+    .settings-section select {
       width: 100%;
       padding: 12px 15px;
       background: rgba(255,255,255,0.08);
@@ -103,18 +118,18 @@
       transition: all 0.3s;
     }
 
-    .settings-group select:hover {
+    .settings-section select:hover {
       background: rgba(255,255,255,0.12);
       border-color: var(--primary-color);
     }
 
-    .settings-group select:focus {
+    .settings-section select:focus {
       outline: none;
       border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgba(0, 242, 96, 0.2);
     }
 
-    .settings-group select option {
+    .settings-section select option {
       background: #1a1a2e;
       color: #fff;
     }
@@ -124,16 +139,16 @@
       color: #aaa;
       margin-top: 5px;
       font-style: italic;
+      padding-left: 5px;
+      min-height: 20px;
     }
 
     .checkbox-wrapper {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-top: 15px;
-      padding: 12px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 8px;
+      padding: 12px 5px;
+      height: 100%;
     }
 
     .checkbox-wrapper input[type="checkbox"] {
@@ -147,6 +162,8 @@
       margin: 0;
       cursor: pointer;
       user-select: none;
+      font-size: 0.95rem;
+      color: #ddd;
     }
 
     .upload-area {
@@ -315,32 +332,80 @@
       border-color: #fff;
     }
 
-    .loader {
-      width: 18px;
-      height: 18px;
-      border: 3px solid rgba(255,255,255,0.3);
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 12, 41, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .big-spinner {
+      width: 80px;
+      height: 80px;
+      border: 6px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--primary-color);
       border-radius: 50%;
-      border-top-color: white;
       animation: spin 1s linear infinite;
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: 10px;
+      margin-bottom: 25px;
+      box-shadow: 0 0 20px rgba(0, 242, 96, 0.3);
+    }
+
+    .loading-text {
+      font-family: "Orbit", sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+    
+    .loading-subtext {
+      font-size: 0.95rem;
+      color: #aaa;
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
     @media (max-width: 600px) {
       .container { padding: 25px; }
       h1 { font-size: 1.9rem; }
-      .result-table th { width: 100%; display: block; border-radius: 15px 15px 0 0; border-bottom: none; border-right: 1px solid rgba(255,255,255,0.05); }
-      .result-table td { width: 100%; display: block; border-radius: 0 0 15px 15px; border-top: none; border-left: 1px solid rgba(255,255,255,0.05); }
+      
+      .result-table th, .result-table td { 
+        width: 100%; display: block; 
+        border-radius: 0; 
+      }
+      .result-table th { border-radius: 15px 15px 0 0; border-right: 1px solid rgba(255,255,255,0.05); }
+      .result-table td { border-radius: 0 0 15px 15px; border-left: 1px solid rgba(255,255,255,0.05); }
       .result-table tr { display: block; margin-bottom: 20px; }
+
+      .settings-table th, .settings-table td {
+        display: block;
+        width: 100%;
+      }
+      .settings-table th { margin-top: 15px; }
+      .settings-table tr:first-child th:first-child { margin-top: 0; }
     }
   </style>
 </head>
 
 <body>
+  <div id="loading-overlay">
+    <div class="big-spinner"></div>
+    <div class="loading-text">AI UPSCALING...</div>
+    <div class="loading-subtext">이미지를 고해상도로 변환하고 있습니다</div>
+    <div class="loading-subtext">잠시만 기다려주세요</div>
+  </div>
+
   <div class="container">
     <h1>AI IMAGE UPSCALER</h1>
     <p class="subtitle">Customizable Noise Removal + Super Resolution</p>
@@ -349,32 +414,45 @@
       <div class="settings-section">
         <h3><i class="fa-solid fa-sliders"></i> 모델 설정</h3>
         
-        <div class="settings-group">
-          <label for="denoise-select">
-            <i class="fa-solid fa-broom"></i> 노이즈 제거 모델
-          </label>
-          <select id="denoise-select" name="denoise_model">
-            <option value="">로딩 중...</option>
-          </select>
-          <div class="model-description" id="denoise-desc"></div>
-        </div>
-
-        <div class="settings-group">
-          <label for="upscale-select">
-            <i class="fa-solid fa-expand"></i> 업스케일링 모델
-          </label>
-          <select id="upscale-select" name="upscale_model">
-            <option value="">로딩 중...</option>
-          </select>
-          <div class="model-description" id="upscale-desc"></div>
-        </div>
-
-        <div class="checkbox-wrapper">
-          <input type="checkbox" id="downscale-check" name="downscale" value="true" checked>
-          <label for="downscale-check">
-            <i class="fa-solid fa-compress"></i> 처리 전 이미지 2배 축소 (성능 향상)
-          </label>
-        </div>
+        <table class="settings-table">
+          <tr>
+            <th><i class="fa-solid fa-broom"></i> 노이즈 제거 모델</th>
+            <th><i class="fa-solid fa-expand"></i> 업스케일링 모델</th>
+          </tr>
+          <tr>
+            <td>
+              <select id="denoise-select" name="denoise_model">
+                <option value="">로딩 중...</option>
+              </select>
+              <div class="model-description" id="denoise-desc"></div>
+            </td>
+            <td>
+              <select id="upscale-select" name="upscale_model">
+                <option value="">로딩 중...</option>
+              </select>
+              <div class="model-description" id="upscale-desc"></div>
+            </td>
+          </tr>
+          <tr>
+            <th><i class="fa-solid fa-ruler-combined"></i> 확대 배율</th>
+            <th><i class="fa-solid fa-compress"></i> 추가 옵션</th>
+          </tr>
+          <tr>
+            <td>
+              <select id="scale-select" name="target_scale">
+                <option value="2">2배 (2x)</option>
+                <option value="3">3배 (3x)</option>
+                <option value="4" selected>4배 (4x) - 기본</option>
+              </select>
+            </td>
+            <td>
+              <div class="checkbox-wrapper">
+                <input type="checkbox" id="downscale-check" name="downscale" value="true" checked>
+                <label for="downscale-check">처리 전 2배 축소</label>
+              </div>
+            </td>
+          </tr>
+        </table>
       </div>
 
       <label for="file-input" class="upload-area" id="drop-area">
@@ -409,6 +487,7 @@
     const upscaleSelect = document.getElementById("upscale-select");
     const denoiseDesc = document.getElementById("denoise-desc");
     const upscaleDesc = document.getElementById("upscale-desc");
+    const loadingOverlay = document.getElementById("loading-overlay");
 
     let modelsData = null;
 
@@ -521,8 +600,8 @@
     form.addEventListener("submit", async e => {
       e.preventDefault();
       
+      loadingOverlay.style.display = "flex";
       submitBtn.disabled = true;
-      submitBtn.innerHTML = `<span class="loader"></span> Processing...`;
       
       const formData = new FormData(form);
 
@@ -571,8 +650,9 @@
         console.error(err);
         form.style.display = "block";
         submitBtn.disabled = false;
-        submitBtn.innerHTML = "RUN UPSCALER";
         alert("오류 발생: " + err.message);
+      } finally {
+        loadingOverlay.style.display = "none";
       }
     });
 
