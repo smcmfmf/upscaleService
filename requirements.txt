@@ -6,3 +6,5 @@ Pillow
 realesrgan
 basicsr
 numpy
+facexlib
+gfpgan

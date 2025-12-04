@@ -32,7 +32,7 @@
 
     .container {
       width: 100%;
-      max-width: 800px;
+      max-width: 900px;
       background: var(--glass-bg);
       border: var(--glass-border);
       border-radius: 20px;
@@ -57,6 +57,98 @@
       font-size: 0.95rem;
     }
 
+    .settings-section {
+      margin-bottom: 25px;
+      text-align: left;
+      background: rgba(255,255,255,0.03);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .settings-section h3 {
+      color: var(--primary-color);
+      margin-bottom: 15px;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .settings-group {
+      margin-bottom: 20px;
+    }
+
+    .settings-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .settings-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #ddd;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    .settings-group select {
+      width: 100%;
+      padding: 12px 15px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .settings-group select:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: var(--primary-color);
+    }
+
+    .settings-group select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 242, 96, 0.2);
+    }
+
+    .settings-group select option {
+      background: #1a1a2e;
+      color: #fff;
+    }
+
+    .model-description {
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 15px;
+      padding: 12px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 8px;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--primary-color);
+    }
+
+    .checkbox-wrapper label {
+      margin: 0;
+      cursor: pointer;
+      user-select: none;
+    }
+
     .upload-area {
       border: 2px dashed rgba(255,255,255,0.35);
       border-radius: 16px;
@@ -68,6 +160,7 @@
       align-items: center;
       justify-content: center;
       transition: 0.25s ease;
+      margin-top: 20px;
     }
 
     .upload-area:hover {
@@ -138,6 +231,27 @@
       width: 100%;
       display: none;
       animation: fadeIn 0.5s ease;
+    }
+
+    .result-info {
+      background: rgba(0, 242, 96, 0.1);
+      border: 1px solid rgba(0, 242, 96, 0.3);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .result-info h4 {
+      color: var(--primary-color);
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+
+    .result-info p {
+      margin: 5px 0;
+      font-size: 0.9rem;
+      color: #ddd;
     }
 
     .result-table {
@@ -229,9 +343,40 @@
 <body>
   <div class="container">
     <h1>AI IMAGE UPSCALER</h1>
-    <p class="subtitle">DnCNN Noise Removal + Real-ESRGAN Super Resolution</p>
+    <p class="subtitle">Customizable Noise Removal + Super Resolution</p>
 
     <form id="upload-form" enctype="multipart/form-data">
+      <div class="settings-section">
+        <h3><i class="fa-solid fa-sliders"></i> 모델 설정</h3>
+        
+        <div class="settings-group">
+          <label for="denoise-select">
+            <i class="fa-solid fa-broom"></i> 노이즈 제거 모델
+          </label>
+          <select id="denoise-select" name="denoise_model">
+            <option value="">로딩 중...</option>
+          </select>
+          <div class="model-description" id="denoise-desc"></div>
+        </div>
+
+        <div class="settings-group">
+          <label for="upscale-select">
+            <i class="fa-solid fa-expand"></i> 업스케일링 모델
+          </label>
+          <select id="upscale-select" name="upscale_model">
+            <option value="">로딩 중...</option>
+          </select>
+          <div class="model-description" id="upscale-desc"></div>
+        </div>
+
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="downscale-check" name="downscale" value="true" checked>
+          <label for="downscale-check">
+            <i class="fa-solid fa-compress"></i> 처리 전 이미지 2배 축소 (성능 향상)
+          </label>
+        </div>
+      </div>
+
       <label for="file-input" class="upload-area" id="drop-area">
         <i class="fa-solid fa-cloud-arrow-up"></i>
         <p><strong>이미지를 업로드하세요</strong></p>
@@ -260,6 +405,57 @@
     const submitBtn = document.getElementById("submit-btn");
     const dropArea = document.getElementById("drop-area");
     const resultDiv = document.getElementById("result");
+    const denoiseSelect = document.getElementById("denoise-select");
+    const upscaleSelect = document.getElementById("upscale-select");
+    const denoiseDesc = document.getElementById("denoise-desc");
+    const upscaleDesc = document.getElementById("upscale-desc");
+
+    let modelsData = null;
+
+    async function loadModels() {
+      try {
+        const res = await fetch("/models");
+        modelsData = await res.json();
+
+        denoiseSelect.innerHTML = '';
+        modelsData.denoise_models.forEach((model, idx) => {
+          const option = document.createElement('option');
+          option.value = model.id;
+          option.textContent = model.name;
+          option.dataset.description = model.description;
+          denoiseSelect.appendChild(option);
+          if (idx === 0) {
+            denoiseDesc.textContent = model.description;
+          }
+        });
+
+        upscaleSelect.innerHTML = '';
+        modelsData.upscale_models.forEach((model, idx) => {
+          const option = document.createElement('option');
+          option.value = model.id;
+          option.textContent = `${model.name} (${model.scale}x)`;
+          option.dataset.description = model.description;
+          upscaleSelect.appendChild(option);
+          if (idx === 0) {
+            upscaleDesc.textContent = model.description;
+          }
+        });
+      } catch (err) {
+        console.error("Failed to load models:", err);
+        denoiseSelect.innerHTML = '<option>모델 로딩 실패</option>';
+        upscaleSelect.innerHTML = '<option>모델 로딩 실패</option>';
+      }
+    }
+
+    denoiseSelect.addEventListener('change', (e) => {
+      const selected = e.target.selectedOptions[0];
+      denoiseDesc.textContent = selected.dataset.description || '';
+    });
+
+    upscaleSelect.addEventListener('change', (e) => {
+      const selected = e.target.selectedOptions[0];
+      upscaleDesc.textContent = selected.dataset.description || '';
+    });
 
     function viewImage(src) {
       const w = window.open("");
@@ -289,6 +485,13 @@
       previewContainer.style.display = "none";
       submitBtn.disabled = false;
       submitBtn.innerHTML = "RUN UPSCALER";
+
+      if (denoiseSelect.selectedOptions[0]) {
+        denoiseDesc.textContent = denoiseSelect.selectedOptions[0].dataset.description;
+      }
+      if (upscaleSelect.selectedOptions[0]) {
+        upscaleDesc.textContent = upscaleSelect.selectedOptions[0].dataset.description;
+      }
     }
 
     fileInput.addEventListener("change", () => {
@@ -331,8 +534,17 @@
 
         form.style.display = "none";
 
+        const settings = data.settings;
         resultDiv.style.display = "block";
         resultDiv.innerHTML = `
+          <div class="result-info">
+            <h4><i class="fa-solid fa-circle-info"></i> 처리 정보</h4>
+            <p><strong>노이즈 제거:</strong> ${settings.denoise_model}</p>
+            <p><strong>업스케일링:</strong> ${settings.upscale_model}</p>
+            <p><strong>배율:</strong> ${settings.scale}x</p>
+            <p><strong>사전 축소:</strong> ${settings.downscaled ? '적용됨' : '적용 안 됨'}</p>
+          </div>
+
           <table class="result-table">
             <tbody>
               <tr>
@@ -363,6 +575,8 @@
         alert("오류 발생: " + err.message);
       }
     });
+
+    loadModels();
   </script>
 </body>
 </html>
